@@ -83,17 +83,30 @@ class ApiDb(object):
     def localizar_conta(self, id):
         r = self.db.cursor.execute(
             'SELECT * FROM contas WHERE idConta = ?', (id,))
-        return r.fetchone()
+        obj = r.fetchone()
+        if obj:
+            return {'idConta': obj[0], 'idPessoa': obj[1], 'saldo': obj[2], 'limiteSaqueDiario': obj[3],
+                    'flagAtivo': obj[4], 'tipoConta': obj[5], 'dataCriacao': obj[6]}
+        else:
+            return {}
 
     def localizar_pessoa(self, id):
         r = self.db.cursor.execute(
             'SELECT * FROM pessoas WHERE idPessoa = ?', (id,))
-        return r.fetchone()
+        obj = r.fetchone()
+        if obj:
+            return {'idPessoa': obj[0], 'nome': obj[1], 'cpf': obj[2], 'dataNascimento': obj[3]}
+        else:
+            return {}
 
     def localizar_transacao(self, id):
         r = self.db.cursor.execute(
             'SELECT * FROM transacoes WHERE idTransacao = ?', (id,))
-        return r.fetchone()
+        obj = r.fetchone()
+        if obj:
+            return {'idTransacao': obj[0], 'idConta': obj[1], 'valor': obj[2], 'dataTransacao': obj[3]}
+        else:
+            return {}
 
     # Atualizar conta
     def atualizar_conta(self, id, conta):
@@ -105,28 +118,7 @@ class ApiDb(object):
                 if conta:
                     self.saldo = conta['saldo']
                     self.db.cursor.execute("""
-                UPDATE clientes
-                SET saldo = ?
-                WHERE id = ?
-                """, (self.saldo, id,))
-                # gravando no bd
-                self.db.commit_db()
-                print("Saldo atualizado com sucesso.")
-            else:
-                print('Não existe conta com o id informado.')
-        except Exception:
-            raise Exception
-
-    def atualizar_transacao(self, id, transacao):
-        try:
-            t = self.localizar_transacao(id)
-            if t:
-                # solicitando os dados ao usuário
-                # se for no python2.x digite entre aspas simples
-                if transacao:
-                    self.saldo = transacao['valor']
-                    self.db.cursor.execute("""
-                UPDATE clientes
+                UPDATE contas
                 SET saldo = ?
                 WHERE id = ?
                 """, (self.saldo, id,))
@@ -156,26 +148,14 @@ class ApiDb(object):
         except Exception:
             raise Exception
 
-    #   Consultas
-    def ler_pessoas(self):
-        sql = 'SELECT * FROM pessoas ORDER BY nome'
-        r = self.db.cursor.execute(sql)
-        return r.fetchall()
-
-    def ler_contas(self):
-        sql = 'SELECT * FROM contas ORDER BY dataCriacao'
-        r = self.db.cursor.execute(sql)
-        return r.fetchall()
-
-    def ler_transacoes(self):
-        sql = 'SELECT * FROM transacoes ORDER BY dataTransacao'
-        r = self.db.cursor.execute(sql)
-        return r.fetchall()
-
     def get_transacoes_por_conta(self, id):
         sql = 'SELECT * FROM transacoes WHERE idConta = ?'
         r = self.db.cursor.execute(sql, (id,))
-        return r.fetchall()
+        objs = r.fetchall()
+        if objs:
+            return [{'idTransacao': o[0], 'idConta': o[1], 'valor': o[2], 'dataTransacao': o[3]} for o in objs]
+        else:
+            return []
 
 
 if __name__ == '__main__':

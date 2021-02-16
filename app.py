@@ -23,40 +23,52 @@ class CriaConta(Resource):
             }
             apidb.inserir_conta(conta)
             resp = {'status': 'sucesso', 'mensagem': 'Conta criada com sucesso'}
+        else:
+            id = dados['idPessoa']
+            resp = {'sts': 'erro', 'mensagem': f'Pessoa de ID {id} nao encontrada'}
         return resp
 
 
 class AddSaqueTransacao(Resource):
     def post(self, idConta):
-        dados = request.json
-        conta = apidb.localizar_conta(idConta)
-        print(conta)
-        if conta:
+        try:
+            dados = request.json
+            conta = apidb.localizar_conta(idConta)
+            print(conta)
             transacao = {
                 'idConta': idConta,
                 'dataTransacao': datetime.strptime(dados['dataTransacao'], '%d/%m/%Y').date(),
                 'valor': dados['valor']
             }
-            print('saque')
+            conta['saldo'] = conta['saldo'] - dados['valor']
+            apidb.atualizar_conta(conta)
             apidb.inserir_transacao(transacao)
             resp = {'sts': 'sucesso criar transacao'}
+        except Exception:
+            resp = {'sts': 'erro', 'mensagem': f'Conta de ID {idConta} nao encontrada'}
         return resp
 
 
 class AddDepositoTransacao(Resource):
     def post(self, idConta):
-        dados = request.json
-        conta = apidb.localizar_conta(idConta)
-        print(conta)
-        if conta:
-            transacao = {
-                'conta': idConta,
-                'dataTransacao': datetime.strptime(dados['dataTransacao'], '%d/%m/%Y').date(),
-                'valor': dados['valor']
-            }
-            print('deposito')
-            apidb.inserir_transacao(transacao)
-            resp = {'sts': 'sucesso criar transacao'}
+        try:
+            dados = request.json
+            conta = apidb.localizar_conta(idConta)
+            print(conta)
+            if conta:
+                transacao = {
+                    'idConta': idConta,
+                    'dataTransacao': datetime.strptime(dados['dataTransacao'], '%d/%m/%Y').date(),
+                    'valor': dados['valor']
+                }
+                conta['saldo'] = conta['saldo'] + dados['valor']
+                apidb.atualizar_conta(conta)
+                apidb.inserir_transacao(transacao)
+                resp = {'sts': 'sucesso criar transacao'}
+            else:
+                resp = {'sts': 'erro', 'mensagem': f'Conta de ID {idConta} nao encontrada'}
+        except Exception:
+            resp = {'sts': 'erro', 'mensagem': f'Conta de ID {idConta} nao encontrada'}
         return resp
 
 
@@ -65,10 +77,9 @@ class ListaTransacoes(Resource):
         try:
             trasacoes = apidb.get_transacoes_por_conta(idConta)
             print(trasacoes)
-            resp = [{'idConta': i[1], 'valor': i[2], 'dataTransacao': i[3]} for i in trasacoes]
+            resp = [{'idConta': i['idConta'], 'valor': i['valor'], 'dataTransacao': i['dataTransacao']} for i in trasacoes]
         except Exception:
-            resp = {'sts': 'erro'}
-            raise Exception
+            resp = {'sts': 'erro', 'mensagem': f'Conta de ID {idConta} nao encontrada'}
         return resp
 
 
@@ -77,22 +88,24 @@ class SaldoConta(Resource):
         try:
             conta = apidb.localizar_conta(idConta)
             print(conta)
-            resp = {'idConta': idConta, 'saldo': conta[2]}
+            resp = {'idConta': idConta, 'saldo': conta['saldo']}
         except Exception:
-            resp = {'sts': 'erro'}
-            raise Exception
+            resp = {'sts': 'erro', 'mensagem': f'Conta de ID {idConta} nao encontrada'}
         return resp
 
 
 class BloqueiaConta(Resource):
-    def get(self, idConta):
+    def post(self, idConta):
         try:
             conta = apidb.localizar_conta(idConta)
-            print(conta)
-            resp = {}
+
+            if conta:
+                print(conta)
+                resp = {}
+            else:
+                resp = {'sts': 'erro', 'mensagem': f'Conta de ID {idConta} nao encontrada'}
         except Exception:
-            resp = {'sts': 'erro'}
-            raise Exception
+            resp = {'sts': 'erro', 'mensagem': f'Conta de ID {idConta} nao encontrada'}
         return resp
 
 
