@@ -43,7 +43,7 @@ class AddSaqueTransacao(Resource):
             conta['saldo'] = conta['saldo'] - dados['valor']
             apidb.atualizar_conta(conta)
             apidb.inserir_transacao(transacao)
-            resp = {'sts': 'sucesso criar transacao'}
+            resp = {'sts': 'sucesso ao criar transacao'}
         except Exception:
             resp = {'sts': 'erro', 'mensagem': f'Conta de ID {idConta} nao encontrada'}
         return resp
@@ -75,9 +75,12 @@ class AddDepositoTransacao(Resource):
 class ListaTransacoes(Resource):
     def get(self, idConta):
         try:
-            trasacoes = apidb.get_transacoes_por_conta(idConta)
-            print(trasacoes)
-            resp = [{'idConta': i['idConta'], 'valor': i['valor'], 'dataTransacao': i['dataTransacao']} for i in trasacoes]
+            conta = apidb.localizar_conta(idConta)
+            if conta['flagAtivo']:
+                trasacoes = apidb.get_transacoes_por_conta(idConta)
+                resp = [{'idConta': i['idConta'], 'valor': i['valor'], 'dataTransacao': i['dataTransacao']} for i in trasacoes]
+            else:
+                resp = {'status': 'Conta bloqueada'}
         except Exception:
             resp = {'sts': 'erro', 'mensagem': f'Conta de ID {idConta} nao encontrada'}
         return resp
@@ -87,21 +90,23 @@ class SaldoConta(Resource):
     def get(self, idConta):
         try:
             conta = apidb.localizar_conta(idConta)
-            print(conta)
-            resp = {'idConta': idConta, 'saldo': conta['saldo']}
+            if conta['flagAtivo']:
+                resp = {'idConta': idConta, 'saldo': conta['saldo']}
+            else:
+                resp = {'status': 'Conta Bloqueada'}
         except Exception:
             resp = {'sts': 'erro', 'mensagem': f'Conta de ID {idConta} nao encontrada'}
         return resp
 
 
 class BloqueiaConta(Resource):
-    def post(self, idConta):
+    def put(self, idConta):
         try:
             conta = apidb.localizar_conta(idConta)
-
             if conta:
-                print(conta)
-                resp = {}
+                conta['flagAtivo'] = True
+                apidb.atualizar_conta(conta)
+                resp = {'status': 'sucesso', 'mensagem': 'Conta bloqueada com sucesso'}
             else:
                 resp = {'sts': 'erro', 'mensagem': f'Conta de ID {idConta} nao encontrada'}
         except Exception:

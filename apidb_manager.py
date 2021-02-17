@@ -39,7 +39,7 @@ class ApiDb(object):
             self.db.commit_db()
             print("Um registro inserido com sucesso.")
         except sqlite3.IntegrityError:
-            print("Aviso: O email deve ser único.")
+            print("Aviso: O cpf deve ser único.")
             return False
 
     def inserir_conta(self, conta):
@@ -59,7 +59,7 @@ class ApiDb(object):
             self.db.commit_db()
             print("Um registro inserido com sucesso.")
         except sqlite3.IntegrityError:
-            print("Aviso: O email deve ser único.")
+            print("Aviso: O registro deve ser único.")
             return False
 
     def inserir_transacao(self, transacao):
@@ -76,7 +76,7 @@ class ApiDb(object):
             self.db.commit_db()
             print("Um registro inserido com sucesso.")
         except sqlite3.IntegrityError:
-            print("Aviso: O email deve ser único.")
+            print("Aviso: O registro deve ser único.")
             return False
 
     # localizar uma conta
@@ -86,9 +86,9 @@ class ApiDb(object):
         obj = r.fetchone()
         if obj:
             return {'idConta': obj[0], 'idPessoa': obj[1], 'saldo': obj[2], 'limiteSaqueDiario': obj[3],
-                    'flagAtivo': obj[4], 'tipoConta': obj[5], 'dataCriacao': obj[6]}
+                    'flagAtivo': obj[4], 'tipoConta': obj[5], 'dataCriacao': obj[6], 'status': 'sucesso'}
         else:
-            return {}
+            return {'status': 'erro'}
 
     def localizar_pessoa(self, id):
         r = self.db.cursor.execute(
@@ -109,19 +109,18 @@ class ApiDb(object):
             return {}
 
     # Atualizar conta
-    def atualizar_conta(self, id, conta):
+    def atualizar_conta(self, conta):
         try:
-            c = self.localizar_conta(id)
+            c = self.localizar_conta(conta['idConta'])
             if c:
-                # solicitando os dados ao usuário
-                # se for no python2.x digite entre aspas simples
-                if conta:
-                    self.saldo = conta['saldo']
-                    self.db.cursor.execute("""
-                UPDATE contas
-                SET saldo = ?
-                WHERE id = ?
-                """, (self.saldo, id,))
+                self.saldo = conta['saldo']
+                self.flag = conta['flagAtivo']
+                self.id = conta['idConta']
+                self.db.cursor.execute("""
+                    UPDATE contas
+                    SET saldo = ?, flagAtivo = ?
+                    WHERE idConta = ?
+                    """, (self.saldo, self.flag, self.id,))
                 # gravando no bd
                 self.db.commit_db()
                 print("Saldo atualizado com sucesso.")
@@ -135,7 +134,7 @@ class ApiDb(object):
     def deletar_conta(self, id):
         try:
             c = self.localizar_conta(id)
-            # verificando se existe cliente com o ID passado, caso exista
+            # verificando se existe conta com o ID passado, caso exista
             if c:
                 self.db.cursor.execute("""
                 DELETE FROM contas WHERE id = ?
@@ -167,5 +166,4 @@ if __name__ == '__main__':
         'dataNascimento': datetime.strptime('01/02/2021', '%d/%m/%Y').date()
     }
     apidb.inserir_pessoa(p)
-    apidb.ler_pessoas()
     apidb.close_connection()
